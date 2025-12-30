@@ -37,9 +37,20 @@
                             4</span>) vs Mua (<span class="text-green-600 font-bold">>4</span>)</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row items-center gap-2">
+                <!-- Google Sheet Buttons -->
+                <button onclick="toggleSheetInput()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg text-sm border border-slate-200 transition flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    Link Google Sheet
+                </button>
+                <!-- File Upload -->
                 <label for="upload"
-                    class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 transform active:scale-95">
+                    class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm hover:shadow-md transition flex items-center gap-2 text-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -48,6 +59,19 @@
                     Chọn file Excel
                 </label>
                 <input type="file" id="upload" accept=".xlsx, .xls, .csv" class="hidden">
+            </div>
+        </div>
+        <!-- Sheet Input Form (Hidden by default) -->
+        <div id="sheet-input-area" class="hidden border-t border-slate-100 bg-slate-50">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row gap-2 items-center">
+                <input type="text" id="sheetUrl" placeholder="Dán Web App URL của Google Script vào đây..."
+                    class="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none w-full">
+                <input type="password" id="sheetPass" placeholder="Mật khẩu..."
+                    class="px-3 py-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-32">
+                <button onclick="fetchFromSheet()"
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap w-full sm:w-auto">
+                    Tải dữ liệu
+                </button>
             </div>
         </div>
     </header>
@@ -64,7 +88,7 @@
                         </svg>
                         Sẵn sàng
                     </span>
-                    <span id="file-info" class="text-sm text-slate-500">Đang đọc dữ liệu...</span>
+                    <span id="file-info" class="text-sm text-slate-500">Chưa có dữ liệu.</span>
                 </div>
                 <button id="btnExport"
                     class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
@@ -156,9 +180,9 @@
                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
             </div>
-            <h3 class="text-lg font-medium text-slate-900">Tải file Excel để bắt đầu</h3>
-            <p class="text-slate-500 text-sm mt-1 max-w-sm mx-auto">Hệ thống sẽ tự động nhận diện cột Đại lý, Khu vực và
-                các Mã gạch.</p>
+            <h3 class="text-lg font-medium text-slate-900">Tải file Excel hoặc kết nối Google Sheet</h3>
+            <p class="text-slate-500 text-sm mt-1 max-w-sm mx-auto">Chọn file từ máy hoặc dán link Script đã được cấp
+                quyền.</p>
         </div>
         <!-- Charts -->
         <div id="charts-area" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
@@ -194,24 +218,22 @@
             </div>
         </div>
     </main>
-    <!-- JS LOGIC - Migrated from User's Code + Tailwind Integration -->
+    <!-- JS LOGIC -->
     <script>
         // --- Utilities ---
         const $ = id => document.getElementById(id);
         const sum = a => a.reduce((x, y) => x + (+y || 0), 0);
         const fmt = n => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString("vi-VN");
         const unique = a => Array.from(new Set(a.filter(Boolean)));
-        function nv(s) {
-            return String(s || "").normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-                .toLowerCase().trim();
-        }
+        function nv(s) { return String(s || "").normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().trim(); }
         // --- State ---
         let RAW_HEADERS = [], RAW_BODY = [];
         let DATA = [];
         let CHARTS = {};
-        // --- Core Logic (From User Code) ---
+        // --- Core Logic ---
+        function toggleSheetInput() {
+            $('sheet-input-area').classList.toggle('hidden');
+        }
         function detectHeaderRow(matrix) {
             let best = -1, bc = 0, limit = Math.min(matrix.length, 60);
             for (let i = 0; i < limit; i++) {
@@ -223,7 +245,6 @@
         }
         function isCodeHeader(h) {
             const s = String(h || '').trim();
-            // User's Regex
             return /vagb/i.test(s) || /^m(ẫu|au)\s+/i.test(s) || /code|sku/i.test(s);
         }
         function findHeader(headers, aliases, fallbackIdx) {
@@ -237,6 +258,54 @@
             }
             return headers[fallbackIdx] || headers[0];
         }
+        // --- Data Processor (Common for File & Sheet) ---
+        function processMatrix(matrix, sourceName) {
+            if (!matrix || !matrix.length) { alert('Dữ liệu rỗng'); return; }
+            const hi = detectHeaderRow(matrix);
+            if (hi < 0) { alert('Không tìm thấy dòng tiêu đề hợp lệ.'); return; }
+            const headers = (matrix[hi] || []).map(x => String(x || '').trim());
+            const body = matrix.slice(hi + 1);
+            RAW_HEADERS = headers;
+            // Logic finding columns
+            const hRegion = findHeader(headers, ['khu vuc', 'khu vực', 'mien', 'miền', 'region', 'kv'], 0);
+            const hCustomer = findHeader(headers, ['dai ly', 'đại lý', 'khach hang', 'khách hàng', 'agency', 'agent', 'customer'], 1);
+            const idx = new Map(headers.map((h, i) => [h, i]));
+            const codeHeaders = headers.filter(h => h !== hRegion && h !== hCustomer && isCodeHeader(h));
+            if (!codeHeaders.length) {
+                $('file-info').textContent = "Lỗi: Không tìm thấy cột mã.";
+                alert('Không thấy cột mã (VAGB/Code/SKU/Mẫu ...).');
+                return;
+            }
+            // Parse Rows
+            const rows = [];
+            for (const row of body) {
+                const R = String(row[idx.get(hRegion)] || '').trim();
+                const C = String(row[idx.get(hCustomer)] || '').trim();
+                if (!R && !C) continue;
+                for (const h of codeHeaders) {
+                    const cellVal = String(row[idx.get(h)] || '');
+                    const v = Number(cellVal.replace(/[^0-9.\-]/g, ''));
+                    if (!isFinite(v) || v === 0) continue;
+                    rows.push({ region: R, customer: C, code: h, qty: v });
+                }
+            }
+            DATA = rows;
+            updateUI(sourceName, rows.length);
+        }
+        function updateUI(sourceName, count) {
+            $('placeholder').classList.add('hidden');
+            $('kpi-area').classList.remove('hidden');
+            $('kpi-area').classList.add('grid');
+            $('charts-area').classList.remove('hidden');
+            $('charts-area').classList.add('grid');
+            $('file-info').textContent = `Nguồn: ${sourceName} (${count.toLocaleString()} dòng)`;
+            $('sheet-input-area').classList.add('hidden'); // hide input area after success
+            fillSelect($('filterRegion'), unique(DATA.map(r => r.region)), 'Khu vực');
+            fillSelect($('filterCustomer'), unique(DATA.map(r => r.customer)), 'Đại lý');
+            fillSelect($('filterCode'), unique(DATA.map(r => r.code)), 'Mã gạch');
+            paint();
+        }
+        // --- File Handling ---
         function parseFile(file) {
             return new Promise((resolve, reject) => {
                 if (file.name.toLowerCase().endsWith('.csv')) {
@@ -250,7 +319,45 @@
                 }
             });
         }
-        // --- UI & Rendering ---
+        async function doImport() {
+            try {
+                const fileInput = $('upload');
+                const file = fileInput.files[0];
+                if (!file) return;
+                $('file-info').textContent = `Đang đọc file: ${file.name}...`;
+                const matrix = await parseFile(file);
+                processMatrix(matrix, file.name);
+            } catch (e) {
+                console.error(e);
+                alert('Có lỗi: ' + e.message);
+            }
+        }
+        // --- Google Sheet Handling ---
+        async function fetchFromSheet() {
+            const url = $('sheetUrl').value.trim();
+            const pass = $('sheetPass').value.trim();
+            if (!url) { alert("Vui lòng nhập Web App URL."); return; }
+            // Build URL with Password params
+            const targetUrl = url.includes('?') ? `${url}&pass=${pass}` : `${url}?pass=${pass}`;
+            $('file-info').textContent = "Đang kết nối Google Sheet...";
+            try {
+                const res = await fetch(targetUrl);
+                if (!res.ok) throw new Error("Network error");
+                const json = await res.json();
+                if (Array.isArray(json)) {
+                    processMatrix(json, "Google Sheet");
+                } else {
+                    // Script returned error message
+                    alert("Lỗi từ Script: " + JSON.stringify(json));
+                    $('file-info').textContent = "Lỗi kết nối.";
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Không lấy được dữ liệu. Kiểm tra lại URL, Mật khẩu hoặc Deployment.");
+                $('file-info').textContent = "Kết nối thất bại.";
+            }
+        }
+        // --- Painting ---
         function fillSelect(el, items, label) {
             const prev = el.value;
             items = items.sort((a, b) => a.localeCompare(b));
@@ -284,64 +391,7 @@
                 }
             });
         }
-        // --- Main Process ---
-        async function doImport() {
-            try {
-                const fileInput = $('upload');
-                const file = fileInput.files[0];
-                if (!file) return;
-                $('file-info').textContent = `Đang xử lý: ${file.name}...`;
-                const matrix = await parseFile(file);
-                if (!matrix || !matrix.length) { alert('File rỗng'); return; }
-                const hi = detectHeaderRow(matrix);
-                if (hi < 0) { alert('Không tìm thấy dòng tiêu đề hợp lệ.'); return; }
-                const headers = (matrix[hi] || []).map(x => String(x || '').trim());
-                const body = matrix.slice(hi + 1);
-                RAW_HEADERS = headers;
-                // Logic finding columns
-                const hRegion = findHeader(headers, ['khu vuc', 'khu vực', 'mien', 'miền', 'region', 'kv'], 0);
-                const hCustomer = findHeader(headers, ['dai ly', 'đại lý', 'khach hang', 'khách hàng', 'agency', 'agent', 'customer'], 1);
-                const idx = new Map(headers.map((h, i) => [h, i]));
-                const codeHeaders = headers.filter(h => h !== hRegion && h !== hCustomer && isCodeHeader(h));
-                if (!codeHeaders.length) {
-                    $('file-info').textContent = "Lỗi: Không tìm thấy cột mã.";
-                    alert('Không thấy cột mã (VAGB/Code/SKU/Mẫu ...).');
-                    return;
-                }
-                // Parse Rows
-                const rows = [];
-                for (const row of body) {
-                    const R = String(row[idx.get(hRegion)] || '').trim();
-                    const C = String(row[idx.get(hCustomer)] || '').trim();
-                    if (!R && !C) continue;
-                    for (const h of codeHeaders) {
-                        const cellVal = String(row[idx.get(h)] || '');
-                        // Remove commas, spaces to parse number
-                        const v = Number(cellVal.replace(/[^0-9.\-]/g, ''));
-                        if (!isFinite(v) || v === 0) continue;
-                        rows.push({ region: R, customer: C, code: h, qty: v });
-                    }
-                }
-                DATA = rows;
-                // Update UI State
-                $('placeholder').classList.add('hidden');
-                $('kpi-area').classList.remove('hidden');
-                $('kpi-area').classList.add('grid'); // restore grid
-                $('charts-area').classList.remove('hidden');
-                $('charts-area').classList.add('grid');
-                $('file-info').textContent = `Đã tải: ${file.name} (${rows.length.toLocaleString()} dòng dữ liệu)`;
-                // Init Filters
-                fillSelect($('filterRegion'), unique(DATA.map(r => r.region)), 'Khu vực');
-                fillSelect($('filterCustomer'), unique(DATA.map(r => r.customer)), 'Đại lý');
-                fillSelect($('filterCode'), unique(DATA.map(r => r.code)), 'Mã gạch');
-                paint(); // First render
-            } catch (e) {
-                console.error(e);
-                alert('Có lỗi: ' + e.message);
-            }
-        }
         function paint() {
-            // Apply Filters
             const r = $('filterRegion').value;
             const c = $('filterCustomer').value;
             const k = $('filterCode').value;
@@ -350,7 +400,6 @@
                 (!c || x.customer === c) &&
                 (!k || x.code === k)
             );
-            // KPI Logic
             const totalSample = sum(f.filter(x => x.qty === 1 || x.qty === 4).map(x => x.qty));
             const totalBuy = sum(f.filter(x => x.qty > 4).map(x => x.qty));
             const cusSample = new Set(f.filter(x => x.qty === 1 || x.qty === 4).map(x => x.customer)).size;
@@ -361,7 +410,6 @@
             $('kpiBuyCus').textContent = fmt(cusBuy) + ' đại lý';
             $('kpiCode').textContent = fmt(unique(f.map(x => x.code)).length);
             $('kpiRows').textContent = fmt(f.length);
-            // Chart Helpers
             const topBySum = (rows, key, cond) => {
                 const map = new Map();
                 for (const r of rows) {
@@ -371,17 +419,13 @@
                 }
                 return Array.from(map, ([name, val]) => ({ name, val })).sort((a, b) => b.val - a.val).slice(0, 10);
             };
-            // Calculate Tops
             const regTop = topBySum(f, 'region', q => q > 4);
             const cusTop = topBySum(f, 'customer', q => q > 4);
             const codeTop = topBySum(f, 'code', q => q > 4);
-            // Render Charts
-            drawBar('chartRegion', regTop.map(x => x.name), regTop.map(x => x.val), 'rgba(59, 130, 246, 0.8)'); // Blue
-            drawBar('chartCustomer', cusTop.map(x => x.name), cusTop.map(x => x.val), 'rgba(16, 185, 129, 0.8)'); // Green
-            drawBar('chartCode', codeTop.map(x => x.name), codeTop.map(x => x.val), 'rgba(249, 115, 22, 0.8)'); // Orange
-            // Setup Export Button
+            drawBar('chartRegion', regTop.map(x => x.name), regTop.map(x => x.val), 'rgba(59, 130, 246, 0.8)');
+            drawBar('chartCustomer', cusTop.map(x => x.name), cusTop.map(x => x.val), 'rgba(16, 185, 129, 0.8)');
+            drawBar('chartCode', codeTop.map(x => x.name), codeTop.map(x => x.val), 'rgba(249, 115, 22, 0.8)');
             $('btnExport').onclick = () => {
-                // Summarize by customer for export
                 const map = new Map();
                 for (const row of f) {
                     const key = row.customer;
@@ -405,7 +449,6 @@
                 document.body.removeChild(link);
             }
         }
-        // Listeners
         $('upload').addEventListener('change', doImport);
         $('filterRegion').addEventListener('change', paint);
         $('filterCustomer').addEventListener('change', paint);
