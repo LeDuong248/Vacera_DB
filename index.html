@@ -33,7 +33,6 @@
                             class="font-bold">>4</span>)</p>
                 </div>
             </div>
-            <!-- File Upload Input -->
             <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-lg border border-gray-200">
                 <label for="upload"
                     class="cursor-pointer bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-md shadow-sm border border-gray-200 text-sm transition flex items-center gap-2">
@@ -62,11 +61,36 @@
             <p class="text-gray-500 max-w-sm mx-auto">Vui lòng chọn file Excel chứa dữ liệu bán hàng (Matrix) để bắt đầu
                 phân tích.</p>
         </div>
-        <!-- Dashboard Content (Hidden by default) -->
-        <div id="dashboard" class="hidden space-y-8">
+        <!-- Dashboard Content -->
+        <div id="dashboard" class="hidden space-y-6">
+            <!-- Filters Section -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <h4 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Bộ Lọc Dữ Liệu</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Filter Region -->
+                    <select id="filter-region"
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="all">Tất cả Khu Vực</option>
+                    </select>
+                    <!-- Filter Province -->
+                    <select id="filter-province"
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="all">Tất cả Tỉnh Thành</option>
+                    </select>
+                    <!-- Filter Agent -->
+                    <select id="filter-agent"
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="all">Tất cả Đại Lý</option>
+                    </select>
+                    <!-- Filter Product -->
+                    <select id="filter-product"
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="all">Tất cả Mã Gạch</option>
+                    </select>
+                </div>
+            </div>
             <!-- KPIs -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- KPI 1 -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                     <div class="flex items-center justify-between">
                         <div>
@@ -78,7 +102,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- KPI 2 -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                     <div class="flex items-center justify-between">
                         <div>
@@ -90,7 +113,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- KPI 3 -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                     <div class="flex items-center justify-between">
                         <div>
@@ -106,11 +128,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- KPI 4 -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-gray-500 font-medium">Số Sản Phẩm</p>
+                            <p class="text-sm text-gray-500 font-medium">Số Sản Phẩm (Hiển thị)</p>
                             <h3 class="text-2xl font-bold text-gray-800 mt-1" id="kpi-products">0</h3>
                         </div>
                         <div class="bg-orange-50 p-2 rounded-lg text-orange-600">
@@ -147,7 +168,6 @@
                     </div>
                 </div>
             </div>
-            <!-- Log Area -->
             <div class="bg-gray-800 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto">
                 <p id="system-log">> Ready to analyze...</p>
             </div>
@@ -155,19 +175,32 @@
     </main>
     <!-- Application Logic -->
     <script>
-        // Constants
         const THRESHOLD = 4; // Sample <= 4, Purchase > 4
-        // Elements
+        // DOM Inputs
         const fileInput = document.getElementById('upload');
         const fileNameDisplay = document.getElementById('file-name');
         const systemLog = document.getElementById('system-log');
         const dashboard = document.getElementById('dashboard');
         const placeholder = document.getElementById('placeholder');
-        // Chart Instances (to destroy before redrawing)
+        // Filter Inputs
+        const selRegion = document.getElementById('filter-region');
+        const selProvince = document.getElementById('filter-province');
+        const selAgent = document.getElementById('filter-agent');
+        const selProduct = document.getElementById('filter-product');
+        let GLOBAL_RAW_DATA = []; // To store parsed data
+        let GLOBAL_HEADERS = [];
+        let COL_MAP = {};
+        let PRODUCT_INDICES = [];
+        // Chart Instances
         let chartRegion, chartAgent, chartProduct;
         // --- Event Listeners ---
         fileInput.addEventListener('change', handleFile);
-        // --- Main Logic ---
+        // Filter Change Events
+        selRegion.addEventListener('change', runAnalysis);
+        selProvince.addEventListener('change', runAnalysis);
+        selAgent.addEventListener('change', runAnalysis);
+        selProduct.addEventListener('change', runAnalysis);
+        // --- 1. File Parsing ---
         function handleFile(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -179,31 +212,26 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    // Assume data is in the first sheet
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); // Read as Array of Arrays
-                    log(`Parsed ${jsonData.length} rows. Processing matrix...`);
-                    processData(jsonData);
-                    // Show Dashboard
-                    placeholder.classList.add('hidden');
-                    dashboard.classList.remove('hidden');
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    log(`Parsed ${jsonData.length} rows. Initializing data...`);
+                    // Parse Data Once
+                    parseRawData(jsonData);
                 } catch (err) {
                     console.error(err);
                     log("ERROR: " + err.message);
-                    alert("Lỗi đọc file! Hãy chắc chắn là file Excel hợp lệ.");
+                    alert("Lỗi đọc file! Hãy chắc chắn là file Excel đúng định dạng.");
                 }
             };
         }
-        function processData(matrix) {
-            // 1. Detect Headers
-            // Usually Row 0 or 1. Let's find row with 'Đại Lý' or 'Khu Vực'
+        function parseRawData(matrix) {
+            // Find Header Row
             let headerRowIndex = -1;
-            let headers = [];
             for (let i = 0; i < Math.min(10, matrix.length); i++) {
                 const row = matrix[i];
                 if (row.some(cell => typeof cell === 'string' && (cell.includes("Đại Lý") || cell.includes("Khu Vực")))) {
                     headerRowIndex = i;
-                    headers = row;
+                    GLOBAL_HEADERS = row;
                     break;
                 }
             }
@@ -211,97 +239,116 @@
                 log("Error: Could not find header row (Must contain 'Đại Lý' or 'Khu Vực').");
                 return;
             }
-            log(`Header found at row ${headerRowIndex + 1}.`);
-            // 2. Identify Metadata Columns & Product Columns
-            // We assume first few are Metadata, then Products.
-            // Let's look for known keys or default to index.
-            const colMap = {
-                region: -1,
-                province: -1,
-                agent: -1
-            };
-            const productColIndices = [];
-            headers.forEach((cell, index) => {
+            // Map Columns
+            COL_MAP = { region: -1, province: -1, agent: -1 };
+            PRODUCT_INDICES = [];
+            GLOBAL_HEADERS.forEach((cell, index) => {
                 if (!cell) return;
                 const c = cell.toString().trim().toLowerCase();
-                if (c.includes('khu vực')) colMap.region = index;
-                else if (c.includes('tỉnh')) colMap.province = index;
-                else if (c.includes('đại lý')) colMap.agent = index;
-                else {
-                    // Assume it's a product if it's not one of the above and verify it's not empty
-                    // User said products are like VAGB...
-                    productColIndices.push(index);
-                }
+                if (c.includes('khu vực')) COL_MAP.region = index;
+                else if (c.includes('tỉnh')) COL_MAP.province = index;
+                else if (c.includes('đại lý')) COL_MAP.agent = index;
+                else PRODUCT_INDICES.push(index);
             });
-            // 3. Iterate Data Rows
+            // Store Data (Rows after header)
+            GLOBAL_RAW_DATA = matrix.slice(headerRowIndex + 1);
+            // Populate Filters
+            populateFilters();
+            // Run Analysis First Time
+            placeholder.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+            runAnalysis();
+        }
+        // --- 2. Filter Population ---
+        function populateFilters() {
+            const regions = new Set();
+            const provinces = new Set();
+            const agents = new Set();
+            const products = new Set();
+            // Collect unique values
+            GLOBAL_RAW_DATA.forEach(row => {
+                if (COL_MAP.region > -1 && row[COL_MAP.region]) regions.add(row[COL_MAP.region]);
+                if (COL_MAP.province > -1 && row[COL_MAP.province]) provinces.add(row[COL_MAP.province]);
+                if (COL_MAP.agent > -1 && row[COL_MAP.agent]) agents.add(row[COL_MAP.agent]);
+            });
+            PRODUCT_INDICES.forEach(idx => products.add(GLOBAL_HEADERS[idx]));
+            // Helper to fill select
+            const fillSelect = (sel, set, defaultText) => {
+                sel.innerHTML = `<option value="all">${defaultText}</option>`;
+                [...set].sort().forEach(val => {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.innerText = val;
+                    sel.appendChild(opt);
+                });
+            };
+            fillSelect(selRegion, regions, "Tất cả Khu Vực");
+            fillSelect(selProvince, provinces, "Tất cả Tỉnh Thành");
+            fillSelect(selAgent, agents, "Tất cả Đại Lý");
+            fillSelect(selProduct, products, "Tất cả Mã Hàng");
+        }
+        // --- 3. Analysis Logic (With Filters) ---
+        function runAnalysis() {
+            // Get current filter values
+            const fRegion = selRegion.value;
+            const fProvince = selProvince.value;
+            const fAgent = selAgent.value;
+            const fProduct = selProduct.value;
+            log(`Filtering: R=${fRegion}, P=${fProvince}, A=${fAgent}, Prod=${fProduct}`);
             let stats = {
                 totalSample: 0,
                 totalPurchase: 0,
-                totalAgents: 0,
                 byRegion: {},
                 byAgent: {},
                 byProduct: {}
             };
-            // Start from row after header
-            let agentSet = new Set();
-            for (let i = headerRowIndex + 1; i < matrix.length; i++) {
-                const row = matrix[i];
-                if (!row || row.length === 0) continue;
-                // Get Metadata
-                const region = (colMap.region > -1 && row[colMap.region]) ? row[colMap.region] : "Unknown";
-                const agent = (colMap.agent > -1 && row[colMap.agent]) ? row[colMap.agent] : `Row ${i}`;
-                if (agent) agentSet.add(agent);
+            let filteredAgentsSet = new Set();
+            // Iterate Rows
+            GLOBAL_RAW_DATA.forEach(row => {
+                if (!row || row.length === 0) return;
+                const rRegion = (COL_MAP.region > -1) ? row[COL_MAP.region] : "Unknown";
+                const rProvince = (COL_MAP.province > -1) ? row[COL_MAP.province] : "Unknown";
+                const rAgent = (COL_MAP.agent > -1) ? row[COL_MAP.agent] : "Unknown";
+                // Check Row Filters
+                if (fRegion !== 'all' && rRegion !== fRegion) return;
+                if (fProvince !== 'all' && rProvince !== fProvince) return;
+                if (fAgent !== 'all' && rAgent !== fAgent) return;
+                filteredAgentsSet.add(rAgent);
                 // Iterate Products
-                productColIndices.forEach(colIdx => {
+                PRODUCT_INDICES.forEach(colIdx => {
+                    const prodName = GLOBAL_HEADERS[colIdx];
+                    // Check Product Filter
+                    if (fProduct !== 'all' && prodName !== fProduct) return;
                     const qty = row[colIdx];
-                    const productCode = headers[colIdx];
                     if (typeof qty === 'number' && qty > 0) {
-                        // Classify
                         const isSample = qty <= THRESHOLD;
                         const isPurchase = qty > THRESHOLD;
-                        // Increment Totals
                         if (isSample) stats.totalSample++;
-                        if (isPurchase) stats.totalPurchase++;
-                        // Only count "Purchase" volume for Top Charts (or Sample count if needed, but usually Sales is king)
-                        // User asked for "Mua nếu sl > 4". Dashboard usually highlights Sales.
-                        // Let's sum quantity for purchases? Or just count occurrences? user said "Top Đại lý theo mua (>4)" -> likely Count of products bought > 4 or Sum of Qty.
-                        // Let's use SUM of QTY for purchases to show volume, or Count.
-                        // Based on screenshot "Số mã gạch" -> Count.
-                        // Let's count "Number of SKUs purchased" (Frequency).
                         if (isPurchase) {
-                            // Region
-                            stats.byRegion[region] = (stats.byRegion[region] || 0) + qty; // Sum quantity
-                            // Agent
-                            stats.byAgent[agent] = (stats.byAgent[agent] || 0) + qty;
-                            // Product
-                            stats.byProduct[productCode] = (stats.byProduct[productCode] || 0) + qty;
+                            stats.totalPurchase++; // Count occurrences of Purchase
+                            // Aggregations
+                            stats.byRegion[rRegion] = (stats.byRegion[rRegion] || 0) + qty;
+                            stats.byAgent[rAgent] = (stats.byAgent[rAgent] || 0) + qty;
+                            stats.byProduct[prodName] = (stats.byProduct[prodName] || 0) + qty;
                         }
                     }
                 });
-            }
-            stats.totalAgents = agentSet.size;
-            // 4. Update UI
-            updateKPIs(stats, productColIndices.length);
-            drawCharts(stats);
-            log("Analysis Complete.");
-        }
-        function updateKPIs(stats, productCount) {
+            });
+            // Update UI
             document.getElementById('kpi-sample').innerText = stats.totalSample.toLocaleString();
             document.getElementById('kpi-purchase').innerText = stats.totalPurchase.toLocaleString();
-            document.getElementById('kpi-agents').innerText = stats.totalAgents.toLocaleString();
-            document.getElementById('kpi-products').innerText = productCount.toLocaleString();
+            document.getElementById('kpi-agents').innerText = filteredAgentsSet.size.toLocaleString();
+            // Product Count depends on filter
+            let displayedProductCount = (fProduct !== 'all') ? 1 : PRODUCT_INDICES.length;
+            document.getElementById('kpi-products').innerText = displayedProductCount.toLocaleString();
+            drawCharts(stats);
         }
+        // --- 4. Charting ---
         function drawCharts(stats) {
-            // Helper to sort and slice
-            const getTop = (obj, topN = 10) => {
-                return Object.entries(obj)
-                    .sort((a, b) => b[1] - a[1]) // Descending
-                    .slice(0, topN);
-            };
+            const getTop = (obj, topN = 10) => Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, topN);
             const topRegion = getTop(stats.byRegion, 5);
             const topAgent = getTop(stats.byAgent, 20);
             const topProduct = getTop(stats.byProduct, 10);
-            // Chart Configuration Factory
             const createConfig = (label, dataArr, color) => ({
                 type: 'bar',
                 data: {
@@ -316,26 +363,16 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
                 }
             });
-            // Destroy old charts if exist
             if (chartRegion) chartRegion.destroy();
             if (chartAgent) chartAgent.destroy();
             if (chartProduct) chartProduct.destroy();
-            // Render New Charts
-            chartRegion = new Chart(
-                document.getElementById('chart-region'),
-                createConfig('Số lượng mua', topRegion, 'rgba(59, 130, 246, 0.8)') // Blue
-            );
-            chartAgent = new Chart(
-                document.getElementById('chart-agent'),
-                createConfig('Số lượng mua', topAgent, 'rgba(16, 185, 129, 0.8)') // Green
-            );
-            chartProduct = new Chart(
-                document.getElementById('chart-product'),
-                createConfig('Số lượng bán ra', topProduct, 'rgba(249, 115, 22, 0.8)') // Orange
-            );
+            chartRegion = new Chart(document.getElementById('chart-region'), createConfig('Số lượng mua', topRegion, 'rgba(59, 130, 246, 0.8)'));
+            chartAgent = new Chart(document.getElementById('chart-agent'), createConfig('Số lượng mua', topAgent, 'rgba(16, 185, 129, 0.8)'));
+            chartProduct = new Chart(document.getElementById('chart-product'), createConfig('Số lượng bán ra', topProduct, 'rgba(249, 115, 22, 0.8)'));
         }
         function log(msg) {
             const time = new Date().toLocaleTimeString();
