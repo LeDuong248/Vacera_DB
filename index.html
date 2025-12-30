@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vacera — Dashboard ONLINE (Mẫu 1/4 & Mua >4)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#fff;--text:#0f172a;--muted:#6b7280;--line:#e5e7eb;--card:#fff;--primary:#2563eb;--accent:#10b981}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto}
+.wrap{max-width:1320px;margin:0 auto;padding:22px;display:grid;gap:14px}
+.header{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap}
+h1{font-size:22px;margin:0 0 6px 0;font-weight:800;letter-spacing:-0.01em}
+.sub{color:var(--muted);font-size:13px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,button,select{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
+button.primary{background:var(--primary);border-color:var(--primary);color:#fff;cursor:pointer}
+button.ghost{background:#fff}
+button.primary.big{padding:12px 18px;font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+.row{display:grid;gap:14px}
+.row.cols-4{grid-template-columns:repeat(4,1fr)}
+.row.cols-3{grid-template-columns:repeat(3,1fr)}
+.row.cols-2{grid-template-columns:repeat(2,1fr)}
+.kpi .k{color:var(--muted);font-size:12px}
+.kpi .v{font-size:22px;font-weight:800;margin-top:2px}
+.kpi .t{font-size:12px;color:var(--muted)}
+.table-wrap{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+thead th{position:sticky;top:0;background:#fafafa}
+.badge{padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted);background:#fafafa}
+hr.sep{border:none;border-top:1px solid var(--line);margin:8px 0}
+.log{font-family:ui-monospace,Menlo,monospace;background:#0f172a;color:#e5e7eb;border-radius:10px;padding:10px;font-size:12px;max-height:160px;overflow:auto}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:12px;background:#fff}
+.pill b{font-size:12px}
+.ok{color:#065f46;border-color:#a7f3d0;background:#ecfdf5}
+.warn{color:#92400e;border-color:#fed7aa;background:#fffbeb}
+.small{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h1>Vacera — ONLINE: Khu vực / Đại lý / Mã gạch</h1>
+      <div class="sub">Nguồn dữ liệu: Google Sheets **Publish CSV**. Phân loại <b>Mẫu</b> = số lượng <b>1 hoặc 4</b>; <b>Mua</b> = số lượng <b>&gt;4</b>.</div>
+    </div>
+    <div class="controls">
+      <input type="text" id="urlInput" placeholder="Dán URL CSV publish ở đây" style="min-width:520px">
+      <button class="primary big" id="btnStart">Start Live</button>
+      <button id="btnRefresh">Refresh</button>
+      <span class="small">Auto-refresh</span>
+      <input type="number" id="refreshSec" min="10" step="10" value="60">
+      <span class="small">giây</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="badge">Nhật ký</div>
+    <div id="log" class="log">Sẵn sàng. Ví dụ CSV: https://docs.google.com/spreadsheets/d/e/.../pub?gid=SHEET_GID&single=true&output=csv</div>
+  </div>
+
+  <div class="row cols-4">
+    <div class="card kpi"><div class="k">Tổng mẫu (1/4)</div><div class="v" id="kpiSample">—</div><div class="t" id="kpiSampleCus">— đại lý</div></div>
+    <div class="card kpi"><div class="k">Tổng mua (&gt;4)</div><div class="v" id="kpiBuy">—</div><div class="t" id="kpiBuyCus">— đại lý</div></div>
+    <div class="card kpi"><div class="k">Số mã gạch</div><div class="v" id="kpiCode">—</div></div>
+    <div class="card kpi"><div class="k">Số dòng</div><div class="v" id="kpiRows">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="badge">Bộ lọc</div>
+    <div class="controls" style="margin-top:8px">
+      <select id="filterRegion"><option value="">Khu vực (All)</option></select>
+      <select id="filterCustomer"><option value="">Đại lý (All)</option></select>
+      <select id="filterCode"><option value="">Mã gạch (All)</option></select>
+    </div>
+    <hr class="sep">
+    <div class="row cols-3">
+      <div class="card"><h3 style="margin:0 0 6px 0">Top Khu vực theo mua (&gt;4)</h3><canvas id="chartRegion" height="220"></canvas></div>
+      <div class="card"><h3 style="margin:0 0 6px 0">Top Đại lý theo mua (&gt;4)</h3><canvas id="chartCustomer" height="220"></canvas></div>
+      <div class="card"><h3 style="margin:0 0 6px 0">Top Mã gạch theo mua (&gt;4)</h3><canvas id="chartCode" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <div class="row cols-2">
+    <div class="card">
+      <h3 style="margin:0 0 6px 0">Đại lý đã phát mẫu (1/4)</h3>
+      <div class="pill ok"><b>Mẫu</b> = số lượng 1 hoặc 4</div>
+      <div id="tableSample" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 6px 0">Đại lý đã mua (&gt;4)</h3>
+      <div class="pill warn"><b>Mua</b> = số lượng &gt; 4</div>
+      <div id="tableBuy" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
+const fmt=n=> (n==null || isNaN(n)) ? "—" : Number(n).toLocaleString("vi-VN");
+function nv(s){return String(s||"").normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'d').toLowerCase().trim();}
+function log(m){ const el=$('log'); el.textContent += "\\n"+m; el.scrollTop=el.scrollHeight; }
+
+let DATA=[]; // normalized: {region, customer, code, qty}
+let CHARTS={}; let timer=null;
+
+function drawBar(id, labels, data){
+  const ctx=$(id); if(CHARTS[id]) CHARTS[id].destroy();
+  CHARTS[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Số mua (>4)',data,borderWidth:1}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+}
+function renderTable(targetId, rows, cols){
+  const el=$(targetId);
+  if(!rows.length){ el.innerHTML='<div class="table-wrap"><table><tbody><tr><td class="sub">Không có dữ liệu.</td></tr></tbody></table></div>'; return; }
+  const thead='<thead><tr>'+cols.map(c=>`<th>${c.label||c.key}</th>`).join('')+'</tr></thead>';
+  const tbody='<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>`<td>${c.fmt?c.fmt(r[c.key],r):(r[c.key]??'')}</td>`).join('')+'</tr>').join('')+'</tbody>';
+  el.innerHTML=`<div class="table-wrap"><table>${thead}${tbody}</table></div>`;
+}
+function unique(a){ return Array.from(new Set(a.filter(Boolean))); }
+function fillSelect(el, items, label){ const prev=el.value; items=unique(items).sort((a,b)=>a.localeCompare(b)); el.innerHTML=`<option value="">${label} (All)</option>`+items.map(x=>`<option>${x}</option>`).join(''); if(items.includes(prev)) el.value=prev; else el.value=''; }
+function applyFilters(rows){
+  const r=$('filterRegion').value, c=$('filterCustomer').value, k=$('filterCode').value;
+  return rows.filter(x=> (!r||x.region===r)&&(!c||x.customer===c)&&(!k||x.code===k));
+}
+function cascadeFilters(rows){
+  fillSelect($('filterRegion'), rows.map(r=>r.region), 'Khu vực');
+  fillSelect($('filterCustomer'), rows.map(r=>r.customer), 'Đại lý');
+  fillSelect($('filterCode'), rows.map(r=>r.code), 'Mã gạch');
+}
+function summarizeByCustomer(rows){
+  const map=new Map();
+  for(const r of rows){
+    const g=map.get(r.customer)||{customer:r.customer, region:r.region, sample_qty:0, buy_qty:0, sample_codes:new Set(), buy_codes:new Set()};
+    if(r.qty===1 || r.qty===4){ g.sample_qty += r.qty; g.sample_codes.add(r.code); }
+    else if(r.qty>4){ g.buy_qty += r.qty; g.buy_codes.add(r.code); }
+    map.set(r.customer,g);
+  }
+  return Array.from(map.values()).map(x=>({
+    customer:x.customer,
+    region:x.region,
+    sample_qty:x.sample_qty,
+    buy_qty:x.buy_qty,
+    sample_codes: Array.from(x.sample_codes).join(' · '),
+    buy_codes: Array.from(x.buy_codes).join(' · '),
+  }));
+}
+function topBySum(rows, key, cond){
+  const map=new Map();
+  for(const r of rows){
+    if(!cond(r.qty)) continue;
+    map.set(r[key]||'', (map.get(r[key]||'')||0)+r.qty);
+  }
+  return Array.from(map, ([name,val])=>({name,val})).sort((a,b)=>b.val-a.val).slice(0,10);
+}
+
+function paint(allRows){
+  DATA=allRows;
+  cascadeFilters(DATA);
+  const f=applyFilters(DATA);
+
+  const totalSample = sum(f.filter(x=>x.qty===1||x.qty===4).map(x=>x.qty));
+  const totalBuy    = sum(f.filter(x=>x.qty>4).map(x=>x.qty));
+  const cusSample   = new Set(f.filter(x=>x.qty===1||x.qty===4).map(x=>x.customer)).size;
+  const cusBuy      = new Set(f.filter(x=>x.qty>4).map(x=>x.customer)).size;
+
+  $('kpiSample').textContent = fmt(totalSample);
+  $('kpiBuy').textContent    = fmt(totalBuy);
+  $('kpiSampleCus').textContent = fmt(cusSample)+' đại lý có mẫu';
+  $('kpiBuyCus').textContent    = fmt(cusBuy)+' đại lý có mua';
+
+  $('kpiCode').textContent = fmt(unique(f.map(x=>x.code)).length);
+  $('kpiRows').textContent = fmt(f.length);
+
+  const regTop = topBySum(f,'region', q=>q>4);
+  const cusTop = topBySum(f,'customer', q=>q>4);
+  const codeTop= topBySum(f,'code', q=>q>4);
+  drawBar('chartRegion', regTop.map(x=>x.name), regTop.map(x=>x.val));
+  drawBar('chartCustomer', cusTop.map(x=>x.name), cusTop.map(x=>x.val));
+  drawBar('chartCode', codeTop.map(x=>x.name), codeTop.map(x=>x.val));
+
+  const byCustomer = summarizeByCustomer(f);
+  const sampleRows = byCustomer.filter(x=>x.sample_qty>0).sort((a,b)=>b.sample_qty-a.sample_qty);
+  const buyRows    = byCustomer.filter(x=>x.buy_qty>0).sort((a,b)=>b.buy_qty-a.buy_qty);
+
+  renderTable('tableSample', sampleRows, [
+    {key:'customer',label:'Đại lý'},
+    {key:'region',label:'Khu vực'},
+    {key:'sample_qty',label:'Tổng mẫu (1/4)', fmt:fmt},
+    {key:'sample_codes',label:'Mã đã phát mẫu'},
+  ]);
+  renderTable('tableBuy', buyRows, [
+    {key:'customer',label:'Đại lý'},
+    {key:'region',label:'Khu vực'},
+    {key:'buy_qty',label:'Tổng mua (>4)', fmt:fmt},
+    {key:'buy_codes',label:'Mã đã mua'},
+  ]);
+}
+
+function headersOf(rows){ return rows.length ? Object.keys(rows[0]) : []; }
+function isCodeHeader(h){
+  const s=String(h||'').trim();
+  return /vagb/i.test(s) || /^m(ẫu|au)\\s+/i.test(s) || /code|sku/i.test(s);
+}
+function nvFind(headers, aliases, fallback){
+  const norm=headers.map(nv);
+  for(const a of aliases){
+    const i=norm.indexOf(a);
+    if(i>=0) return headers[i];
+  }
+  for(const a of aliases){
+    for(let i=0;i<headers.length;i++){
+      const h=norm[i];
+      if(h.includes(' '+a+' ') || h.startsWith(a+' ') || h.endsWith(' '+a) || h===a) return headers[i];
+    }
+  }
+  return fallback;
+}
+
+async function fetchCSV(url){
+  return new Promise((resolve,reject)=>Papa.parse(url,{download:true,header:true,complete:(res)=>resolve(res.data),error:reject}));
+}
+
+async function refreshNow(){
+  try{
+    const raw=$('urlInput').value.trim();
+    if(!raw){ alert('Dán URL CSV publish trước đã'); return; }
+    const rows=await fetchCSV(raw);
+    if(!rows || !rows.length){ alert('CSV rỗng hoặc không truy cập được'); return; }
+    log('Đã load '+rows.length+' dòng.');
+
+    const headers = headersOf(rows);
+    const hRegion   = nvFind(headers, ['khu vuc','khu vực','mien','miền','region','kv'], headers[0]);
+    const hCustomer = nvFind(headers, ['dai ly','đại lý','khach hang','khách hàng','agency','agent','customer'], headers[1] || headers[0]);
+
+    const codeHeaders = headers.filter(h=> ![hRegion,hCustomer].includes(h) && isCodeHeader(h));
+    if(!codeHeaders.length){ alert('Không thấy cột mã (VAGB/Code/SKU/Mẫu...)'); return; }
+
+    const out=[];
+    for(const row of rows){
+      const region = String(row[hRegion]??'').trim().replace(/^"+|"+$/g,'').replace(/^'+|'+$/g,'') || '(Chưa gán)';
+      const customer = String(row[hCustomer]??'').trim();
+      if(!region && !customer) continue;
+      for(const h of codeHeaders){
+        const v = Number(String(row[h]??'').toString().replace(/[^0-9.\-]/g,''));
+        if(!isFinite(v) || v===0) continue;
+        out.push({region, customer, code:h.trim(), qty:v});
+      }
+    }
+    paint(out);
+  }catch(e){
+    console.error(e); alert('Lỗi load: '+(e&&e.message?e.message:e)); log('Lỗi load: '+(e&&e.message?e.message:e));
+  }
+}
+
+function startLive(){
+  const sec = Math.max(10, parseInt($('refreshSec').value||'60',10));
+  localStorage.setItem('vacera_online_full_url', $('urlInput').value.trim());
+  localStorage.setItem('vacera_online_full_sec', String(sec));
+  if(timer) clearInterval(timer);
+  refreshNow();
+  timer=setInterval(refreshNow, sec*1000);
+  log('Live ON, refresh mỗi '+sec+'s');
+}
+$('btnStart').addEventListener('click', startLive);
+$('btnRefresh').addEventListener('click', refreshNow);
+(function(){
+  const u=localStorage.getItem('vacera_online_full_url');
+  const s=localStorage.getItem('vacera_online_full_sec');
+  if(u) $('urlInput').value=u;
+  if(s) $('refreshSec').value=s;
+})();</script>
+</body>
+</html>
