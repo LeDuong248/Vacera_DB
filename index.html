@@ -400,10 +400,10 @@
                 (!c || x.customer === c) &&
                 (!k || x.code === k)
             );
-            const totalSample = sum(f.filter(x => x.qty === 1 || x.qty === 4).map(x => x.qty));
-            const totalBuy = sum(f.filter(x => x.qty > 4).map(x => x.qty));
-            const cusSample = new Set(f.filter(x => x.qty === 1 || x.qty === 4).map(x => x.customer)).size;
-            const cusBuy = new Set(f.filter(x => x.qty > 4).map(x => x.customer)).size;
+            const totalSample = sum(f.filter(x => x.qty === 1 || x.qty === 5).map(x => x.qty));
+            const totalBuy = sum(f.filter(x => x.qty > 5).map(x => x.qty));
+            const cusSample = new Set(f.filter(x => x.qty === 1 || x.qty === 5).map(x => x.customer)).size;
+            const cusBuy = new Set(f.filter(x => x.qty > 5).map(x => x.customer)).size;
             $('kpiSample').textContent = fmt(totalSample);
             $('kpiBuy').textContent = fmt(totalBuy);
             $('kpiSampleCus').textContent = fmt(cusSample) + ' đại lý';
@@ -419,9 +419,9 @@
                 }
                 return Array.from(map, ([name, val]) => ({ name, val })).sort((a, b) => b.val - a.val).slice(0, 10);
             };
-            const regTop = topBySum(f, 'region', q => q > 4);
-            const cusTop = topBySum(f, 'customer', q => q > 4);
-            const codeTop = topBySum(f, 'code', q => q > 4);
+            const regTop = topBySum(f, 'region', q => q > 5);
+            const cusTop = topBySum(f, 'customer', q => q > 5);
+            const codeTop = topBySum(f, 'code', q => q > 5);
             drawBar('chartRegion', regTop.map(x => x.name), regTop.map(x => x.val), 'rgba(59, 130, 246, 0.8)');
             drawBar('chartCustomer', cusTop.map(x => x.name), cusTop.map(x => x.val), 'rgba(16, 185, 129, 0.8)');
             drawBar('chartCode', codeTop.map(x => x.name), codeTop.map(x => x.val), 'rgba(249, 115, 22, 0.8)');
@@ -430,7 +430,7 @@
                 for (const row of f) {
                     const key = row.customer;
                     const g = map.get(key) || { customer: key, region: row.region, sample: 0, buy: 0 };
-                    if (row.qty === 1 || row.qty === 4) g.sample += row.qty;
+                    if (row.qty === 1 || row.qty === 5) g.sample += row.qty;
                     else if (row.qty > 4) g.buy += row.qty;
                     map.set(key, g);
                 }
