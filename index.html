@@ -1,417 +1,290 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vacera Analytics - Dashboard</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- XLSX & PapaParse -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vacera — Dashboard Mẫu (1/4) & Mua (>4)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#fff;--text:#0f172a;--muted:#6b7280;--line:#e5e7eb;--card:#fff;--primary:#2563eb;--accent:#10b981}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto}
+.wrap{max-width:1320px;margin:0 auto;padding:22px;display:grid;gap:14px}
+.header{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap}
+h1{font-size:22px;margin:0 0 6px 0;font-weight:800;letter-spacing:-0.01em}
+.sub{color:var(--muted);font-size:13px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,button,select{background:#fff;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit}
+button.primary{background:var(--primary);border-color:var(--primary);color:#fff;cursor:pointer}
+button.ghost{background:#fff}
+button.primary.big{padding:12px 18px;font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+.row{display:grid;gap:14px}
+.row.cols-4{grid-template-columns:repeat(4,1fr)}
+.row.cols-3{grid-template-columns:repeat(3,1fr)}
+.row.cols-2{grid-template-columns:repeat(2,1fr)}
+.kpi .k{color:var(--muted);font-size:12px}
+.kpi .v{font-size:22px;font-weight:800;margin-top:2px}
+.kpi .t{font-size:12px;color:var(--muted)}
+.table-wrap{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+thead th{position:sticky;top:0;background:#fafafa}
+.badge{padding:6px 10px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted);background:#fafafa}
+hr.sep{border:none;border-top:1px solid var(--line);margin:8px 0}
+.log{font-family:ui-monospace,Menlo,monospace;background:#0f172a;color:#e5e7eb;border-radius:10px;padding:10px;font-size:12px;max-height:160px;overflow:auto}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:12px;background:#fff}
+.pill b{font-size:12px}
+.ok{color:#065f46;border-color:#a7f3d0;background:#ecfdf5}
+.warn{color:#92400e;border-color:#fed7aa;background:#fffbeb}
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen">
-    <!-- Header -->
-    <header class="bg-white border-b sticky top-0 z-40 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-lg shadow-blue-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">Vacera Analytics</h1>
-                    <p class="text-xs text-slate-500 font-medium">Mẫu (<span class="text-blue-600 font-bold">1 hoặc
-                            4</span>) vs Mua (<span class="text-green-600 font-bold">>4</span>)</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <label for="upload"
-                    class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 transform active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    Chọn file Excel
-                </label>
-                <input type="file" id="upload" accept=".xlsx, .xls, .csv" class="hidden">
-            </div>
-        </div>
-    </header>
-    <!-- Main -->
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <!-- Status & Filter Bar -->
-        <div id="controls-area"
-            class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 hidden animate-fade-in-down">
-            <div class="flex flex-col md:flex-row gap-4 justify-between items-center mb-4">
-                <div class="flex items-center gap-2">
-                    <span
-                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <svg class="-ml-0.5 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
-                            <circle cx="4" cy="4" r="3" />
-                        </svg>
-                        Sẵn sàng
-                    </span>
-                    <span id="file-info" class="text-sm text-slate-500">Đang đọc dữ liệu...</span>
-                </div>
-                <button id="btnExport"
-                    class="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    Xuất CSV
-                </button>
-            </div>
-            <hr class="border-slate-100 mb-4">
-            <!-- FILTERS -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Khu Vực</label>
-                    <select id="filterRegion"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
-                        <option value="">Tất cả</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Đại Lý</label>
-                    <select id="filterCustomer"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
-                        <option value="">Tất cả</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Mã Gạch</label>
-                    <select id="filterCode"
-                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none transition">
-                        <option value="">Tất cả</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <!-- KPIs -->
-        <div id="kpi-area" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 hidden">
-            <!-- KPI 1 -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500">Tổng Mẫu (1 hoặc 4)</p>
-                    <h3 class="text-3xl font-bold text-blue-600 mt-2" id="kpiSample">0</h3>
-                </div>
-                <div class="mt-4 flex items-center gap-2">
-                    <span class="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded-md" id="kpiSampleCus">0
-                        đại lý</span>
-                </div>
-            </div>
-            <!-- KPI 2 -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500">Tổng Mua (>4)</p>
-                    <h3 class="text-3xl font-bold text-green-600 mt-2" id="kpiBuy">0</h3>
-                </div>
-                <div class="mt-4 flex items-center gap-2">
-                    <span class="text-xs font-medium bg-green-50 text-green-700 px-2 py-1 rounded-md" id="kpiBuyCus">0
-                        đại lý</span>
-                </div>
-            </div>
-            <!-- KPI 3 -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500">Số Mã Gạch</p>
-                    <h3 class="text-3xl font-bold text-slate-800 mt-2" id="kpiCode">0</h3>
-                </div>
-                <div class="mt-4">
-                    <span class="text-xs text-slate-400">Đang hiển thị</span>
-                </div>
-            </div>
-            <!-- KPI 4 -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500">Tổng Dòng</p>
-                    <h3 class="text-3xl font-bold text-slate-800 mt-2" id="kpiRows">0</h3>
-                </div>
-                <div class="mt-4">
-                    <span class="text-xs text-slate-400">Dữ liệu thô</span>
-                </div>
-            </div>
-        </div>
-        <!-- Placeholder -->
-        <div id="placeholder" class="text-center py-20 border-2 border-dashed border-slate-300 rounded-xl bg-white">
-            <div class="inline-block p-4 bg-slate-50 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-slate-400" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-            </div>
-            <h3 class="text-lg font-medium text-slate-900">Tải file Excel để bắt đầu</h3>
-            <p class="text-slate-500 text-sm mt-1 max-w-sm mx-auto">Hệ thống sẽ tự động nhận diện cột Đại lý, Khu vực và
-                các Mã gạch.</p>
-        </div>
-        <!-- Charts -->
-        <div id="charts-area" class="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden">
-            <!-- Chart 1 -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <span class="w-2 h-6 bg-blue-500 rounded-sm"></span>
-                    Top Khu Vực (Mua >4)
-                </h4>
-                <div class="relative h-64 w-full">
-                    <canvas id="chartRegion"></canvas>
-                </div>
-            </div>
-            <!-- Chart 2 -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <span class="w-2 h-6 bg-orange-500 rounded-sm"></span>
-                    Top Mã Gạch (Mua >4)
-                </h4>
-                <div class="relative h-64 w-full">
-                    <canvas id="chartCode"></canvas>
-                </div>
-            </div>
-            <!-- Chart 3 (Full) -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
-                <h4 class="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <span class="w-2 h-6 bg-green-500 rounded-sm"></span>
-                    Top Đại Lý (Mua >4)
-                </h4>
-                <div class="relative h-72 w-full">
-                    <canvas id="chartCustomer"></canvas>
-                </div>
-            </div>
-        </div>
-    </main>
-    <!-- JS LOGIC - Migrated from User's Code + Tailwind Integration -->
-    <script>
-        // --- Utilities ---
-        const $ = id => document.getElementById(id);
-        const sum = a => a.reduce((x, y) => x + (+y || 0), 0);
-        const fmt = n => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString("vi-VN");
-        const unique = a => Array.from(new Set(a.filter(Boolean)));
-        function nv(s) {
-            return String(s || "").normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-                .toLowerCase().trim();
-        }
-        // --- State ---
-        let RAW_HEADERS = [], RAW_BODY = [];
-        let DATA = [];
-        let CHARTS = {};
-        // --- Core Logic (From User Code) ---
-        function detectHeaderRow(matrix) {
-            let best = -1, bc = 0, limit = Math.min(matrix.length, 60);
-            for (let i = 0; i < limit; i++) {
-                const r = matrix[i] || [];
-                const c = r.filter(x => String(x || '').trim() !== '').length;
-                if (c >= 3 && c > bc) { best = i; bc = c; }
-            }
-            return best;
-        }
-        function isCodeHeader(h) {
-            const s = String(h || '').trim();
-            // User's Regex
-            return /vagb/i.test(s) || /^m(ẫu|au)\s+/i.test(s) || /code|sku/i.test(s);
-        }
-        function findHeader(headers, aliases, fallbackIdx) {
-            const norm = headers.map(nv);
-            for (const a of aliases) {
-                for (let i = 0; i < headers.length; i++) {
-                    const h = norm[i];
-                    if (h === a) return headers[i];
-                    if (h.includes(' ' + a + ' ') || h.startsWith(a + ' ') || h.endsWith(' ' + a) || h === a) return headers[i];
-                }
-            }
-            return headers[fallbackIdx] || headers[0];
-        }
-        function parseFile(file) {
-            return new Promise((resolve, reject) => {
-                if (file.name.toLowerCase().endsWith('.csv')) {
-                    Papa.parse(file, { complete: (res) => resolve(res.data), error: reject });
-                } else {
-                    file.arrayBuffer().then(buf => {
-                        const wb = XLSX.read(buf, { type: 'array' });
-                        const ws = wb.Sheets[wb.SheetNames[0]];
-                        resolve(XLSX.utils.sheet_to_json(ws, { header: 1 }));
-                    }).catch(reject);
-                }
-            });
-        }
-        // --- UI & Rendering ---
-        function fillSelect(el, items, label) {
-            const prev = el.value;
-            items = items.sort((a, b) => a.localeCompare(b));
-            el.innerHTML = `<option value="">${label} (Tất cả)</option>` + items.map(x => `<option value="${x}">${x}</option>`).join('');
-            if (items.includes(prev)) el.value = prev; else el.value = '';
-        }
-        function drawBar(id, labels, data, colorStr) {
-            const ctx = $(id);
-            if (CHARTS[id]) CHARTS[id].destroy();
-            CHARTS[id] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Số mua (>4)',
-                        data,
-                        backgroundColor: colorStr,
-                        borderRadius: 4,
-                        barThickness: 'flex',
-                        maxBarThickness: 40
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { borderDash: [2, 2] } },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-        // --- Main Process ---
-        async function doImport() {
-            try {
-                const fileInput = $('upload');
-                const file = fileInput.files[0];
-                if (!file) return;
-                $('file-info').textContent = `Đang xử lý: ${file.name}...`;
-                const matrix = await parseFile(file);
-                if (!matrix || !matrix.length) { alert('File rỗng'); return; }
-                const hi = detectHeaderRow(matrix);
-                if (hi < 0) { alert('Không tìm thấy dòng tiêu đề hợp lệ.'); return; }
-                const headers = (matrix[hi] || []).map(x => String(x || '').trim());
-                const body = matrix.slice(hi + 1);
-                RAW_HEADERS = headers;
-                // Logic finding columns
-                const hRegion = findHeader(headers, ['khu vuc', 'khu vực', 'mien', 'miền', 'region', 'kv'], 0);
-                const hCustomer = findHeader(headers, ['dai ly', 'đại lý', 'khach hang', 'khách hàng', 'agency', 'agent', 'customer'], 1);
-                const idx = new Map(headers.map((h, i) => [h, i]));
-                const codeHeaders = headers.filter(h => h !== hRegion && h !== hCustomer && isCodeHeader(h));
-                if (!codeHeaders.length) {
-                    $('file-info').textContent = "Lỗi: Không tìm thấy cột mã.";
-                    alert('Không thấy cột mã (VAGB/Code/SKU/Mẫu ...).');
-                    return;
-                }
-                // Parse Rows
-                const rows = [];
-                for (const row of body) {
-                    const R = String(row[idx.get(hRegion)] || '').trim();
-                    const C = String(row[idx.get(hCustomer)] || '').trim();
-                    if (!R && !C) continue;
-                    for (const h of codeHeaders) {
-                        const cellVal = String(row[idx.get(h)] || '');
-                        // Remove commas, spaces to parse number
-                        const v = Number(cellVal.replace(/[^0-9.\-]/g, ''));
-                        if (!isFinite(v) || v === 0) continue;
-                        rows.push({ region: R, customer: C, code: h, qty: v });
-                    }
-                }
-                DATA = rows;
-                // Update UI State
-                $('placeholder').classList.add('hidden');
-                $('controls-area').classList.remove('hidden');
-                $('kpi-area').classList.remove('hidden');
-                $('kpi-area').classList.add('grid'); // restore grid
-                $('charts-area').classList.remove('hidden');
-                $('charts-area').classList.add('grid');
-                $('file-info').textContent = `Đã tải: ${file.name} (${rows.length.toLocaleString()} dòng dữ liệu)`;
-                // Init Filters
-                fillSelect($('filterRegion'), unique(DATA.map(r => r.region)), 'Khu vực');
-                fillSelect($('filterCustomer'), unique(DATA.map(r => r.customer)), 'Đại lý');
-                fillSelect($('filterCode'), unique(DATA.map(r => r.code)), 'Mã gạch');
-                paint(); // First render
-            } catch (e) {
-                console.error(e);
-                alert('Có lỗi: ' + e.message);
-            }
-        }
-        function paint() {
-            // Apply Filters
-            const r = $('filterRegion').value;
-            const c = $('filterCustomer').value;
-            const k = $('filterCode').value;
-            const f = DATA.filter(x =>
-                (!r || x.region === r) &&
-                (!c || x.customer === c) &&
-                (!k || x.code === k)
-            );
-            // KPI Logic
-            const totalSample = sum(f.filter(x => x.qty === 1 || x.qty === 4).map(x => x.qty));
-            const totalBuy = sum(f.filter(x => x.qty > 4).map(x => x.qty));
-            const cusSample = new Set(f.filter(x => x.qty === 1 || x.qty === 4).map(x => x.customer)).size;
-            const cusBuy = new Set(f.filter(x => x.qty > 4).map(x => x.customer)).size;
-            $('kpiSample').textContent = fmt(totalSample);
-            $('kpiBuy').textContent = fmt(totalBuy);
-            $('kpiSampleCus').textContent = fmt(cusSample) + ' đại lý';
-            $('kpiBuyCus').textContent = fmt(cusBuy) + ' đại lý';
-            $('kpiCode').textContent = fmt(unique(f.map(x => x.code)).length);
-            $('kpiRows').textContent = fmt(f.length);
-            // Chart Helpers
-            const topBySum = (rows, key, cond) => {
-                const map = new Map();
-                for (const r of rows) {
-                    if (!cond(r.qty)) continue;
-                    const k = r[key] || 'Unknown';
-                    map.set(k, (map.get(k) || 0) + r.qty);
-                }
-                return Array.from(map, ([name, val]) => ({ name, val })).sort((a, b) => b.val - a.val).slice(0, 10);
-            };
-            // Calculate Tops
-            const regTop = topBySum(f, 'region', q => q > 4);
-            const cusTop = topBySum(f, 'customer', q => q > 4);
-            const codeTop = topBySum(f, 'code', q => q > 4);
-            // Render Charts
-            drawBar('chartRegion', regTop.map(x => x.name), regTop.map(x => x.val), 'rgba(59, 130, 246, 0.8)'); // Blue
-            drawBar('chartCustomer', cusTop.map(x => x.name), cusTop.map(x => x.val), 'rgba(16, 185, 129, 0.8)'); // Green
-            drawBar('chartCode', codeTop.map(x => x.name), codeTop.map(x => x.val), 'rgba(249, 115, 22, 0.8)'); // Orange
-            // Setup Export Button
-            $('btnExport').onclick = () => {
-                // Summarize by customer for export
-                const map = new Map();
-                for (const row of f) {
-                    const key = row.customer;
-                    const g = map.get(key) || { customer: key, region: row.region, sample: 0, buy: 0 };
-                    if (row.qty === 1 || row.qty === 4) g.sample += row.qty;
-                    else if (row.qty > 4) g.buy += row.qty;
-                    map.set(key, g);
-                }
-                const csvRows = ['Dai_ly,Khu_vuc,Tong_Mau,Tong_Mua'];
-                for (const item of map.values()) {
-                    csvRows.push(`${item.customer},${item.region},${item.sample},${item.buy}`);
-                }
-                const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", "bao_cao_vacera.csv");
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        }
-        // Listeners
-        $('upload').addEventListener('change', doImport);
-        $('filterRegion').addEventListener('change', paint);
-        $('filterCustomer').addEventListener('change', paint);
-        $('filterCode').addEventListener('change', paint);
-    </script>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h1>Vacera — Quản lý khu vực / đại lý / mã gạch</h1>
+      <div class="sub">Phân loại: <b>Mẫu</b> nếu số lượng = <b>1 hoặc 4</b> · <b>Mua</b> nếu số lượng <b>&gt; 4</b>. Chỉ tính các cột mã (ví dụ VAGB...).</div>
+    </div>
+    <div class="controls">
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+      <button class="primary big" id="btnImport">Nhập file</button>
+      <button class="ghost" id="btnExport">Xuất CSV (đại lý)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="badge">Nhật ký</div>
+    <div id="log" class="log">Sẵn sàng.</div>
+  </div>
+
+  <div class="row cols-4">
+    <div class="card kpi"><div class="k">Tổng mẫu (1/4)</div><div class="v" id="kpiSample">—</div><div class="t" id="kpiSampleCus">— đại lý</div></div>
+    <div class="card kpi"><div class="k">Tổng mua (&gt;4)</div><div class="v" id="kpiBuy">—</div><div class="t" id="kpiBuyCus">— đại lý</div></div>
+    <div class="card kpi"><div class="k">Số mã gạch</div><div class="v" id="kpiCode">—</div></div>
+    <div class="card kpi"><div class="k">Số dòng</div><div class="v" id="kpiRows">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="badge">Bộ lọc</div>
+    <div class="controls" style="margin-top:8px">
+      <select id="filterRegion"><option value="">Khu vực (All)</option></select>
+      <select id="filterCustomer"><option value="">Đại lý (All)</option></select>
+      <select id="filterCode"><option value="">Mã gạch (All)</option></select>
+    </div>
+    <hr class="sep">
+    <div class="row cols-3">
+      <div class="card"><h3 style="margin:0 0 6px 0">Top Khu vực theo mua (&gt;4)</h3><canvas id="chartRegion" height="220"></canvas></div>
+      <div class="card"><h3 style="margin:0 0 6px 0">Top Đại lý theo mua (&gt;4)</h3><canvas id="chartCustomer" height="220"></canvas></div>
+      <div class="card"><h3 style="margin:0 0 6px 0">Top Mã gạch theo mua (&gt;4)</h3><canvas id="chartCode" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <div class="row cols-2">
+    <div class="card">
+      <h3 style="margin:0 0 6px 0">Đại lý đã phát mẫu (1/4)</h3>
+      <div class="pill ok"><b>Mẫu</b> = số lượng 1 hoặc 4</div>
+      <div id="tableSample" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 6px 0">Đại lý đã mua (&gt;4)</h3>
+      <div class="pill warn"><b>Mua</b> = số lượng &gt; 4</div>
+      <div id="tableBuy" style="margin-top:8px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const sum=a=>a.reduce((x,y)=>x+(+y||0),0);
+const fmt=n=> (n==null || isNaN(n)) ? "—" : Number(n).toLocaleString("vi-VN");
+function nv(s){return String(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'d').toLowerCase().trim();}
+function log(m){ const el=$('log'); el.textContent += "\n"+m; el.scrollTop=el.scrollHeight; }
+
+let RAW_HEADERS=[], RAW_BODY=[];
+let DATA=[]; // normalized: {region, customer, code, qty}
+let CHARTS={};
+
+function drawBar(id, labels, data){
+  const ctx=$(id); if(CHARTS[id]) CHARTS[id].destroy();
+  CHARTS[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Số mua (>4)',data,borderWidth:1}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}});
+}
+function renderTable(targetId, rows, cols){
+  const el=$(targetId);
+  if(!rows.length){ el.innerHTML='<div class="table-wrap"><table><tbody><tr><td class="sub">Không có dữ liệu.</td></tr></tbody></table></div>'; return; }
+  const thead='<thead><tr>'+cols.map(c=>`<th>${c.label||c.key}</th>`).join('')+'</tr></thead>';
+  const tbody='<tbody>'+rows.map(r=>'<tr>'+cols.map(c=>`<td>${c.fmt?c.fmt(r[c.key],r):(r[c.key]??'')}</td>`).join('')+'</tr>').join('')+'</tbody>';
+  el.innerHTML=`<div class="table-wrap"><table>${thead}${tbody}</table></div>`;
+}
+function detectHeaderRow(matrix){
+  let best=-1,bc=0,limit=Math.min(matrix.length,60);
+  for(let i=0;i<limit;i++){ const r=matrix[i]||[]; const c=r.filter(x=>String(x||'').trim()!=='').length; if(c>=3 && c>bc){ best=i; bc=c; } }
+  return best;
+}
+function parseFile(file){
+  return new Promise((resolve,reject)=>{
+    if(file.name.toLowerCase().endsWith('.csv')){
+      Papa.parse(file,{complete:(res)=>resolve(res.data),error:reject});
+    }else{
+      file.arrayBuffer().then(buf=>{
+        const wb=XLSX.read(buf,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
+        resolve(XLSX.utils.sheet_to_json(ws,{header:1}));
+      }).catch(reject);
+    }
+  });
+}
+function isCodeHeader(h){
+  const s=String(h||'').trim();
+  return /vagb/i.test(s) || /^m(ẫu|au)\s+/i.test(s) || /code|sku/i.test(s);
+}
+function findHeader(headers, aliases, fallbackIdx){
+  const norm=headers.map(nv);
+  for(const a of aliases){
+    for(let i=0;i<headers.length;i++){
+      const h=norm[i];
+      if(h===a) return headers[i];
+      if(h.includes(' '+a+' ') || h.startsWith(a+' ') || h.endsWith(' '+a) || h===a) return headers[i];
+    }
+  }
+  return headers[fallbackIdx] || headers[0];
+}
+
+const selRegion=$('filterRegion'), selCustomer=$('filterCustomer'), selCode=$('filterCode');
+function unique(a){ return Array.from(new Set(a.filter(Boolean))); }
+function fillSelect(el, items, label){ const prev=el.value; items=items.sort((a,b)=>a.localeCompare(b)); el.innerHTML=`<option value="">${label} (All)</option>`+items.map(x=>`<option>${x}</option>`).join(''); if(items.includes(prev)) el.value=prev; else el.value=''; }
+function applyFilters(rows){
+  const r=selRegion.value, c=selCustomer.value, k=selCode.value;
+  return rows.filter(x=> (!r||x.region===r)&&(!c||x.customer===c)&&(!k||x.code===k));
+}
+function cascadeFilters(rows){
+  fillSelect(selRegion, unique(rows.map(r=>r.region)), 'Khu vực');
+  fillSelect(selCustomer, unique(rows.map(r=>r.customer)), 'Đại lý');
+  fillSelect(selCode, unique(rows.map(r=>r.code)), 'Mã gạch');
+}
+
+function summarizeByCustomer(rows){
+  const map=new Map();
+  for(const r of rows){
+    const g=map.get(r.customer)||{customer:r.customer, region:r.region, sample_qty:0, buy_qty:0, sample_codes:new Set(), buy_codes:new Set()};
+    if(r.qty===1 || r.qty===4){ g.sample_qty += r.qty; g.sample_codes.add(r.code); }
+    else if(r.qty>4){ g.buy_qty += r.qty; g.buy_codes.add(r.code); }
+    map.set(r.customer,g);
+  }
+  return Array.from(map.values()).map(x=>({
+    customer:x.customer,
+    region:x.region,
+    sample_qty:x.sample_qty,
+    buy_qty:x.buy_qty,
+    sample_codes: Array.from(x.sample_codes).join(' · '),
+    buy_codes: Array.from(x.buy_codes).join(' · ')
+  }));
+}
+function topBySum(rows, key, cond){
+  const map=new Map();
+  for(const r of rows){
+    if(!cond(r.qty)) continue;
+    const k=r[key]||'';
+    map.set(k,(map.get(k)||0)+r.qty);
+  }
+  return Array.from(map, ([name,val])=>({name,val})).sort((a,b)=>b.val-a.val).slice(0,10);
+}
+
+function paint(allRows){
+  DATA=allRows;
+  cascadeFilters(DATA);
+  const f=applyFilters(DATA);
+
+  const totalSample = sum(f.filter(x=>x.qty===1||x.qty===4).map(x=>x.qty));
+  const totalBuy    = sum(f.filter(x=>x.qty>4).map(x=>x.qty));
+  const cusSample   = new Set(f.filter(x=>x.qty===1||x.qty===4).map(x=>x.customer)).size;
+  const cusBuy      = new Set(f.filter(x=>x.qty>4).map(x=>x.customer)).size;
+
+  $('kpiSample').textContent = fmt(totalSample);
+  $('kpiBuy').textContent    = fmt(totalBuy);
+  $('kpiSampleCus').textContent = fmt(cusSample)+' đại lý có mẫu';
+  $('kpiBuyCus').textContent    = fmt(cusBuy)+' đại lý có mua';
+
+  $('kpiCode').textContent = fmt(unique(f.map(x=>x.code)).length);
+  $('kpiRows').textContent = fmt(f.length);
+
+  const regTop = topBySum(f,'region', q=>q>4);
+  const cusTop = topBySum(f,'customer', q=>q>4);
+  const codeTop= topBySum(f,'code', q=>q>4);
+  drawBar('chartRegion', regTop.map(x=>x.name), regTop.map(x=>x.val));
+  drawBar('chartCustomer', cusTop.map(x=>x.name), cusTop.map(x=>x.val));
+  drawBar('chartCode', codeTop.map(x=>x.name), codeTop.map(x=>x.val));
+
+  const byCustomer = summarizeByCustomer(f);
+  const sampleRows = byCustomer.filter(x=>x.sample_qty>0).sort((a,b)=>b.sample_qty-a.sample_qty);
+  const buyRows    = byCustomer.filter(x=>x.buy_qty>0).sort((a,b)=>b.buy_qty-a.buy_qty);
+
+  renderTable('tableSample', sampleRows, [
+    {key:'customer',label:'Đại lý'},
+    {key:'region',label:'Khu vực'},
+    {key:'sample_qty',label:'Tổng mẫu (1/4)', fmt:fmt},
+    {key:'sample_codes',label:'Mã đã phát mẫu'},
+  ]);
+  renderTable('tableBuy', buyRows, [
+    {key:'customer',label:'Đại lý'},
+    {key:'region',label:'Khu vực'},
+    {key:'buy_qty',label:'Tổng mua (>4)', fmt:fmt},
+    {key:'buy_codes',label:'Mã đã mua'},
+  ]);
+
+  $('btnExport').onclick=()=>{
+    const h=['Dai_ly','Khu_vuc','Tong_mau_1_4','Tong_mua_tren4','Ma_mau','Ma_mua'];
+    const lines=[h.join(',')].concat(byCustomer.map(r=>[
+      r.customer, r.region, r.sample_qty, r.buy_qty, `"${r.sample_codes}"`, `"${r.buy_codes}"`
+    ].join(',')));
+    const a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(lines.join('\n'));
+    a.download='summary_agency.csv';
+    a.click();
+  };
+}
+
+async function doImport(){
+  try{
+    const file=$('fileInput').files[0]; if(!file){ alert('Chọn file trước.'); return; }
+    log('Đang đọc: '+file.name);
+    const matrix=await parseFile(file);
+    if(!matrix || !matrix.length){ alert('File rỗng'); return; }
+    const hi=detectHeaderRow(matrix); if(hi<0){ alert('Không thấy header'); return; }
+    const headers=(matrix[hi]||[]).map(x=>String(x||'').trim()); const body=matrix.slice(hi+1);
+    RAW_HEADERS=headers; RAW_BODY=body;
+    log('Header: '+headers.join(' | '));
+
+    const hRegion = findHeader(headers, ['khu vuc','khu vực','mien','miền','region','kv'], 0);
+    const hCustomer = findHeader(headers, ['dai ly','đại lý','khach hang','khách hàng','agency','agent','customer'], 1);
+
+    const idx=new Map(headers.map((h,i)=>[h,i]));
+    const codeHeaders = headers.filter(h=> h!==hRegion && h!==hCustomer && isCodeHeader(h));
+    if(!codeHeaders.length){ alert('Không thấy cột mã (VAGB/Code/SKU/Mẫu ...).'); return; }
+    log('Cột mã dùng: '+codeHeaders.join(' | '));
+
+    const rows=[];
+    for(const row of body){
+      const R=String(row[idx.get(hRegion)]||'').trim();
+      const C=String(row[idx.get(hCustomer)]||'').trim();
+      if(!R && !C) continue;
+      for(const h of codeHeaders){
+        const v=Number(String(row[idx.get(h)]||'').replace(/[^0-9.\-]/g,''));
+        if(!isFinite(v) || v===0) continue;
+        const code = String(h).trim();
+        rows.push({region:R, customer:C, code, qty:v});
+      }
+    }
+    paint(rows);
+  }catch(e){
+    console.error(e); alert('Có lỗi khi nhập: '+(e&&e.message?e.message:e));
+  }
+}
+
+document.getElementById('btnImport').addEventListener('click', doImport);
+</script>
 </body>
 </html>
