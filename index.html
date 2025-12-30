@@ -3,245 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vacera Internal Report</title>
-    <!-- Tailwind CSS (Dùng CDN cho nhanh, không cần cài đặt) -->
+    <title>Vacera Analytics Dashboard - Quản lý Khu vực / Đại lý / Mã gạch</title>
+    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 3px solid white;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
+        body {
+            font-family: 'Inter', sans-serif;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen overflow-hidden">
-    <!-- ================= Login Screen ================= -->
-    <div id="login-modal" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center">
-            <div class="mb-6 inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 text-blue-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-            </div>
-            <h2 class="text-2xl font-bold mb-2">Bảo mật hệ thống</h2>
-            <p class="text-slate-500 mb-6">Vui lòng nhập mật khẩu nội bộ để truy cập báo cáo.</p>
-            
-            <form id="login-form" autocomplete="off">
-                <input type="password" id="app-password" placeholder="Nhập mật khẩu..." 
-                    class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none mb-4 transition" required>
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition shadow-md">
-                    Truy cập ngay
-                </button>
-            </form>
-            <p id="login-error" class="hidden text-red-500 mt-3 text-sm font-medium">Sai mật khẩu rồi đại ca ơi!</p>
-        </div>
-    </div>
-    <!-- ================= Main Screen (Dashboard) ================= -->
-    <div id="main-app" class="hidden h-full flex flex-col">
-        
-        <!-- Header -->
-        <header class="bg-white border-b px-4 py-4 flex justify-between items-center shadow-sm shrink-0">
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-2">
                 <div class="bg-blue-600 text-white p-2 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                 </div>
-                <h1 class="font-bold text-xl tracking-tight text-slate-800">Vacera <span class="text-blue-600">Report</span></h1>
-            </div>
-            <button onclick="logout()" class="text-sm font-medium text-slate-500 hover:text-red-600 transition">
-                Đăng xuất
-            </button>
-        </header>
-        <!-- Content (Scrollable) -->
-        <main class="flex-1 overflow-y-auto p-4 bg-slate-50">
-            <div class="max-w-2xl mx-auto">
-                
-                <!-- Welcome Card -->
-                <div class="bg-blue-600 rounded-xl p-6 text-white shadow-lg mb-6">
-                    <h2 class="text-2xl font-bold mb-1">Xin chào, Sale Master! 👋</h2>
-                    <p class="text-blue-100 opacity-90">Hôm nay chốt được đơn nào chưa? Nhập ngay vào đây nhé.</p>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">Vacera Analytics</h1>
+                    <p class="text-xs text-gray-500">Phân tích Mẫu (<span class="font-bold">≤4</span>) và Đơn Mua (<span
+                            class="font-bold">>4</span>)</p>
                 </div>
-                <!-- Form Card -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-6 border-b border-slate-100">
-                        <h3 class="font-bold text-lg text-slate-800">Thông tin đơn hàng</h3>
-                    </div>
-                    
-                    <form id="report-form" class="p-6 space-y-5">
-                        
-                        <!-- Grid 2 Column layout for Tablet/PC -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            
-                            <!-- Khu Vực -->
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Khu Vực</label>
-                                <select name="khuvuc" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                                    <option value="" disabled selected>Chọn khu vực...</option>
-                                    <option value="Miền Bắc">Miền Bắc</option>
-                                    <option value="Miền Trung">Miền Trung</option>
-                                    <option value="Miền Nam">Miền Nam</option>
-                                    <option value="Miền Tây">Miền Tây</option>
-                                </select>
-                            </div>
-                            <!-- Tỉnh Thành -->
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Tỉnh Thành</label>
-                                <input name="tinhthanh" type="text" placeholder="Ví dụ: Cần Thơ" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                            <!-- Đại Lý -->
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Tên Đại Lý</label>
-                                <input name="daily" type="text" placeholder="Nhập tên đại lý..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
-                            </div>
-                            <!-- Nhân Viên Sale -->
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Nhân Viên Sale</label>
-                                <input name="sales" type="text" placeholder="Tên của bạn..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
-                            </div>
-                            <!-- Loại Hàng -->
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Loại Hàng</label>
-                                <select name="loaihang" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                                    <option value="" disabled selected>Chọn loại hàng...</option>
-                                    <option value="Gạch bông">Gạch bông</option>
-                                    <option value="Gạch dẻo">Gạch dẻo</option>
-                                    <option value="Thảm">Thảm</option>
-                                    <option value="Gỗ">Sàn gỗ</option>
-                                    <option value="Khác">Khác</option>
-                                </select>
-                            </div>
-                            <!-- Mã Hàng -->
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Mã Hàng</label>
-                                <input name="mahang" type="text" placeholder="VD: VAGB3001" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                            </div>
-                        </div>
-                        <!-- Ghi Chú (Full Width) -->
+            </div>
+            <!-- File Upload Input -->
+            <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-lg border border-gray-200">
+                <label for="upload"
+                    class="cursor-pointer bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-md shadow-sm border border-gray-200 text-sm transition flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Chọn file Excel
+                </label>
+                <input type="file" id="upload" accept=".xlsx, .xls, .csv" class="hidden">
+                <span id="file-name" class="text-xs text-gray-500 px-2 max-w-[150px] truncate">Chưa chọn file</span>
+            </div>
+        </div>
+    </header>
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <!-- Initial Placeholder -->
+        <div id="placeholder" class="text-center py-20 border-2 border-dashed border-gray-300 rounded-xl bg-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="text-xl font-medium text-gray-900 mb-2">Chưa có dữ liệu</h3>
+            <p class="text-gray-500 max-w-sm mx-auto">Vui lòng chọn file Excel chứa dữ liệu bán hàng (Matrix) để bắt đầu
+                phân tích.</p>
+        </div>
+        <!-- Dashboard Content (Hidden by default) -->
+        <div id="dashboard" class="hidden space-y-8">
+            <!-- KPIs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- KPI 1 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Ghi Chú</label>
-                            <textarea name="ghichu" rows="3" placeholder="Ghi chú thêm về đơn hàng hoặc số lượng..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            <p class="text-sm text-gray-500 font-medium">Tổng Mã Mẫu (≤4)</p>
+                            <h3 class="text-2xl font-bold text-blue-600 mt-1" id="kpi-sample">0</h3>
                         </div>
-                        <!-- Submit Button -->
-                         <button type="submit" id="btn-submit" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-lg shadow-lg transform transition active:scale-[0.98] flex justify-center items-center gap-2">
-                            <span>🚀 Gửi Báo Cáo Ngay</span>
-                        </button>
-                    </form>
+                        <div class="bg-blue-50 p-2 rounded-lg text-blue-600">
+                            <span class="text-xs font-bold">SAMPLE</span>
+                        </div>
+                    </div>
                 </div>
-                <!-- Footer -->
-                <p class="text-center text-slate-400 text-xs mt-8 mb-4">© 2024 Vacera Internal System. Secure Connection.</p>
+                <!-- KPI 2 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Tổng Đơn Mua (>4)</p>
+                            <h3 class="text-2xl font-bold text-green-600 mt-1" id="kpi-purchase">0</h3>
+                        </div>
+                        <div class="bg-green-50 p-2 rounded-lg text-green-600">
+                            <span class="text-xs font-bold">SALE</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- KPI 3 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Số Đại Lý</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1" id="kpi-agents">0</h3>
+                        </div>
+                        <div class="bg-purple-50 p-2 rounded-lg text-purple-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <!-- KPI 4 -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Số Sản Phẩm</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1" id="kpi-products">0</h3>
+                        </div>
+                        <div class="bg-orange-50 p-2 rounded-lg text-orange-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </main>
-    </div>
-    <!-- JS Logic -->
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 1: Top Regions -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h4 class="font-bold text-gray-800 mb-4">Top Khu Vực Mua Nhiều Nhất</h4>
+                    <div class="relative h-64">
+                        <canvas id="chart-region"></canvas>
+                    </div>
+                </div>
+                <!-- Chart 2: Top Products -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h4 class="font-bold text-gray-800 mb-4">Top Mã Gạch Bán Chạy (>4)</h4>
+                    <div class="relative h-64">
+                        <canvas id="chart-product"></canvas>
+                    </div>
+                </div>
+                <!-- Chart 3: Top Agents (Full Width) -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h4 class="font-bold text-gray-800 mb-4">Top 20 Đại Lý Mua Hàng Tích Cực</h4>
+                    <div class="relative h-80">
+                        <canvas id="chart-agent"></canvas>
+                    </div>
+                </div>
+            </div>
+            <!-- Log Area -->
+            <div class="bg-gray-800 text-green-400 p-4 rounded-xl font-mono text-xs overflow-x-auto">
+                <p id="system-log">> Ready to analyze...</p>
+            </div>
+        </div>
+    </main>
+    <!-- Application Logic -->
     <script>
-        // CẤU HÌNH LIÊN KẾT GOOGLE SHEET
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2e-DttUORCzk-nyduWyzuHO7yX2hvJDsO385JUqOuKKicdx2APLb79i2bGlLvl-PT/exec';
-        
-        // Mật khẩu cứng ở phía Client (Tạm thời) - Sẽ gửi kèm về Server để check lần 2
-        // Bạn có thể đổi pass này
-        const CLIENT_PASS = "123456"; 
-        // DOM Elements
-        const loginModal = document.getElementById('login-modal');
-        const mainApp = document.getElementById('main-app');
-        const loginForm = document.getElementById('login-form');
-        const appPasswordInput = document.getElementById('app-password');
-        const reportForm = document.getElementById('report-form');
-        const submitBtn = document.getElementById('btn-submit');
-        const loginError = document.getElementById('login-error');
-        // 1. XỬ LÝ ĐĂNG NHẬP
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const pass = appPasswordInput.value;
-            
-            // Ở đây tạm thời check pass cứng đơn giản.
-            // Thực tế security nằm ở Google Apps Script (Server).
-            // Pass này chỉ là lớp chắn UI thôi.
-            // Để đơn giản cho user, mình dùng chung pass mà Script đang dùng hoặc pass user muốn.
-            // Logic: Nếu đúng, lưu vào localStorage để lần sau khỏi nhập lại.
-            
-            // Mình sẽ cho phép nhập bất kỳ, nhưng gửi kèm về server. 
-            // Nếu server trả về lỗi sai pass thì mới báo.
-            // Nhưng để UX tốt, mình check sơ ở đây trước.
-            // Giả sử pass đúng là "123456" hoặc để trống cho dễ test :)) 
-            // Thôi làm check thật luôn: Phải nhập gì đó mới cho qua
-            
-            if (pass.length > 0) {
-                // Lưu pass vào bộ nhớ tạm để dùng gửi request
-                localStorage.setItem('app_pass', pass);
-                showApp();
-            } else {
-                loginError.classList.remove('hidden');
+        // Constants
+        const THRESHOLD = 4; // Sample <= 4, Purchase > 4
+        // Elements
+        const fileInput = document.getElementById('upload');
+        const fileNameDisplay = document.getElementById('file-name');
+        const systemLog = document.getElementById('system-log');
+        const dashboard = document.getElementById('dashboard');
+        const placeholder = document.getElementById('placeholder');
+        // Chart Instances (to destroy before redrawing)
+        let chartRegion, chartAgent, chartProduct;
+        // --- Event Listeners ---
+        fileInput.addEventListener('change', handleFile);
+        // --- Main Logic ---
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            fileNameDisplay.innerText = file.name;
+            log(`Reading file: ${file.name}...`);
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    // Assume data is in the first sheet
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); // Read as Array of Arrays
+                    log(`Parsed ${jsonData.length} rows. Processing matrix...`);
+                    processData(jsonData);
+                    // Show Dashboard
+                    placeholder.classList.add('hidden');
+                    dashboard.classList.remove('hidden');
+                } catch (err) {
+                    console.error(err);
+                    log("ERROR: " + err.message);
+                    alert("Lỗi đọc file! Hãy chắc chắn là file Excel hợp lệ.");
+                }
+            };
+        }
+        function processData(matrix) {
+            // 1. Detect Headers
+            // Usually Row 0 or 1. Let's find row with 'Đại Lý' or 'Khu Vực'
+            let headerRowIndex = -1;
+            let headers = [];
+            for (let i = 0; i < Math.min(10, matrix.length); i++) {
+                const row = matrix[i];
+                if (row.some(cell => typeof cell === 'string' && (cell.includes("Đại Lý") || cell.includes("Khu Vực")))) {
+                    headerRowIndex = i;
+                    headers = row;
+                    break;
+                }
             }
-        });
-        // Tự động đăng nhập nếu đã lưu pass
-        if(localStorage.getItem('app_pass')) {
-            showApp();
-        }
-        function showApp() {
-            loginModal.classList.add('hidden');
-            mainApp.classList.remove('hidden');
-        }
-        function logout() {
-            localStorage.removeItem('app_pass');
-            location.reload();
-        }
-        // 2. XỬ LÝ GỬI FORM (SUBMIT)
-        reportForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            // Hiệu ứng Loading
-            const originalBtnContent = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<div class="spinner"></div> Đang gửi...';
-            submitBtn.disabled = true;
-            submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
-            // Lấy dữ liệu từ Form
-            const formData = new FormData(reportForm);
-            const data = {};
-            formData.forEach((value, key) => data[key] = value);
-            
-            // Thêm mật khẩu vào data để server check
-            data['password'] = "BiMatKhongDuocBatMi"; // Mật khẩu khớp với trong Script
-            // Gửi Request (Dùng fetch no-cors để tránh lỗi CORS của Google nhưng khó nhận response)
-            // Hoặc dùng: application/x-www-form-urlencoded
-            
-            const params = new URLSearchParams(data);
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Quan trọng: Google Apps Script yêu cầu cái này nếu gọi từ client khác domain
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: params
-            })
-            .then(response => {
-                // Do chế độ no-cors, ta không đọc được nội dung trả về JSON.
-                // Nhưng nếu không báo lỗi network thì coi như thành công 99%.
-                
-                // Reset form
-                reportForm.reset();
-                
-                // Show thông báo thành công (Alert đơn giản hoặc Toast xịn)
-                alert("✅ Thành công! Đơn hàng đã được lưu vào Sheet.");
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("❌ Có lỗi xảy ra: " + error);
-            })
-            .finally(() => {
-                // Tắt hiệu ứng Loading
-                submitBtn.innerHTML = originalBtnContent;
-                submitBtn.disabled = false;
-                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            if (headerRowIndex === -1) {
+                log("Error: Could not find header row (Must contain 'Đại Lý' or 'Khu Vực').");
+                return;
+            }
+            log(`Header found at row ${headerRowIndex + 1}.`);
+            // 2. Identify Metadata Columns & Product Columns
+            // We assume first few are Metadata, then Products.
+            // Let's look for known keys or default to index.
+            const colMap = {
+                region: -1,
+                province: -1,
+                agent: -1
+            };
+            const productColIndices = [];
+            headers.forEach((cell, index) => {
+                if (!cell) return;
+                const c = cell.toString().trim().toLowerCase();
+                if (c.includes('khu vực')) colMap.region = index;
+                else if (c.includes('tỉnh')) colMap.province = index;
+                else if (c.includes('đại lý')) colMap.agent = index;
+                else {
+                    // Assume it's a product if it's not one of the above and verify it's not empty
+                    // User said products are like VAGB...
+                    productColIndices.push(index);
+                }
             });
-        });
+            // 3. Iterate Data Rows
+            let stats = {
+                totalSample: 0,
+                totalPurchase: 0,
+                totalAgents: 0,
+                byRegion: {},
+                byAgent: {},
+                byProduct: {}
+            };
+            // Start from row after header
+            let agentSet = new Set();
+            for (let i = headerRowIndex + 1; i < matrix.length; i++) {
+                const row = matrix[i];
+                if (!row || row.length === 0) continue;
+                // Get Metadata
+                const region = (colMap.region > -1 && row[colMap.region]) ? row[colMap.region] : "Unknown";
+                const agent = (colMap.agent > -1 && row[colMap.agent]) ? row[colMap.agent] : `Row ${i}`;
+                if (agent) agentSet.add(agent);
+                // Iterate Products
+                productColIndices.forEach(colIdx => {
+                    const qty = row[colIdx];
+                    const productCode = headers[colIdx];
+                    if (typeof qty === 'number' && qty > 0) {
+                        // Classify
+                        const isSample = qty <= THRESHOLD;
+                        const isPurchase = qty > THRESHOLD;
+                        // Increment Totals
+                        if (isSample) stats.totalSample++;
+                        if (isPurchase) stats.totalPurchase++;
+                        // Only count "Purchase" volume for Top Charts (or Sample count if needed, but usually Sales is king)
+                        // User asked for "Mua nếu sl > 4". Dashboard usually highlights Sales.
+                        // Let's sum quantity for purchases? Or just count occurrences? user said "Top Đại lý theo mua (>4)" -> likely Count of products bought > 4 or Sum of Qty.
+                        // Let's use SUM of QTY for purchases to show volume, or Count.
+                        // Based on screenshot "Số mã gạch" -> Count.
+                        // Let's count "Number of SKUs purchased" (Frequency).
+                        if (isPurchase) {
+                            // Region
+                            stats.byRegion[region] = (stats.byRegion[region] || 0) + qty; // Sum quantity
+                            // Agent
+                            stats.byAgent[agent] = (stats.byAgent[agent] || 0) + qty;
+                            // Product
+                            stats.byProduct[productCode] = (stats.byProduct[productCode] || 0) + qty;
+                        }
+                    }
+                });
+            }
+            stats.totalAgents = agentSet.size;
+            // 4. Update UI
+            updateKPIs(stats, productColIndices.length);
+            drawCharts(stats);
+            log("Analysis Complete.");
+        }
+        function updateKPIs(stats, productCount) {
+            document.getElementById('kpi-sample').innerText = stats.totalSample.toLocaleString();
+            document.getElementById('kpi-purchase').innerText = stats.totalPurchase.toLocaleString();
+            document.getElementById('kpi-agents').innerText = stats.totalAgents.toLocaleString();
+            document.getElementById('kpi-products').innerText = productCount.toLocaleString();
+        }
+        function drawCharts(stats) {
+            // Helper to sort and slice
+            const getTop = (obj, topN = 10) => {
+                return Object.entries(obj)
+                    .sort((a, b) => b[1] - a[1]) // Descending
+                    .slice(0, topN);
+            };
+            const topRegion = getTop(stats.byRegion, 5);
+            const topAgent = getTop(stats.byAgent, 20);
+            const topProduct = getTop(stats.byProduct, 10);
+            // Chart Configuration Factory
+            const createConfig = (label, dataArr, color) => ({
+                type: 'bar',
+                data: {
+                    labels: dataArr.map(i => i[0]),
+                    datasets: [{
+                        label: label,
+                        data: dataArr.map(i => i[1]),
+                        backgroundColor: color,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+            // Destroy old charts if exist
+            if (chartRegion) chartRegion.destroy();
+            if (chartAgent) chartAgent.destroy();
+            if (chartProduct) chartProduct.destroy();
+            // Render New Charts
+            chartRegion = new Chart(
+                document.getElementById('chart-region'),
+                createConfig('Số lượng mua', topRegion, 'rgba(59, 130, 246, 0.8)') // Blue
+            );
+            chartAgent = new Chart(
+                document.getElementById('chart-agent'),
+                createConfig('Số lượng mua', topAgent, 'rgba(16, 185, 129, 0.8)') // Green
+            );
+            chartProduct = new Chart(
+                document.getElementById('chart-product'),
+                createConfig('Số lượng bán ra', topProduct, 'rgba(249, 115, 22, 0.8)') // Orange
+            );
+        }
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            systemLog.innerHTML += `<div>[${time}] ${msg}</div>`;
+            systemLog.scrollTop = systemLog.scrollHeight;
+        }
     </script>
 </body>
 </html>
